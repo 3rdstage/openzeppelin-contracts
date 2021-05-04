@@ -47,8 +47,8 @@ contract('Attributable', function (accounts) {
       const receipt1 = await cntr.setAttribute('color', 'blue');
       
       // 'event AttributeSet(string indexed name, string value, uint indexed index)'
-      expectEvent(receipt1, 'AttributeSet', 
-        { name: web3.utils.keccak256('color'), value: 'blue', index: new BN(0)});
+      expectEvent(receipt1, 'AttributeAdded', 
+        { name: web3.utils.keccak256('color'), value: 'blue', no: new BN(1)});
       
       expect(await cntr.getAttribute('color')).to.equal('blue');
       expect(await cntr.getAttributeNames()).to.have.members(['color']);
@@ -56,8 +56,8 @@ contract('Attributable', function (accounts) {
       // set 2nd attribute
       const receipt2 = await cntr.setAttribute('width', '100');
       
-      expectEvent(receipt2, 'AttributeSet', 
-        { name: web3.utils.keccak256('width'), value: '100', index: new BN(1)});
+      expectEvent(receipt2, 'AttributeAdded', 
+        { name: web3.utils.keccak256('width'), value: '100', no: new BN(1)});
       expect(await cntr.getAttribute('width')).to.equal('100');
       expect(await cntr.getAttributeNames()).to.have.members(['color', 'width']);
       

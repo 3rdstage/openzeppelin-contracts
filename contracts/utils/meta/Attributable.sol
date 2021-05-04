@@ -14,6 +14,8 @@ struct Attribute{
 }
 
 // @TODO Who can change attributes ?
+// @TODO What if a duplicate pair of name/value is to be added ?
+// @TODO For multiple values for a name(key), `Attribute.name`s are redundant. 
 
 contract Attributable{
     using EnumerableSet for EnumerableSet.UintSet;
@@ -23,8 +25,20 @@ contract Attributable{
     mapping(string => EnumerableSet.UintSet) private _idxsByName; // attrib name => attrib indexes
     EnumerableSet.UintSet private _firstIdxs;  // attrib indexes on first values for each name
 
-    event AttributeSet(string indexed name, string value, uint indexed index);
-    event AttributeAdded(string indexed name, string value, uint count, uint indexed index);
+    event AttributeAdded(string indexed name, string value, uint no);
+    event AttributeRemoved(string indexed name, string value);    
+    event AttributesRemoved(string indexed name);
+
+    function getAttributeNames() public view returns (string[] memory){
+        uint l = _firstIdxs.length();
+
+        string[] memory names = new string[](l);
+        for(uint i = 0; i < l; i++){
+            names[i] = _attribs[_firstIdxs.at(i)].name;
+        }
+
+        return names;
+    }
     
     function getAttribute(string memory name) public view returns (string memory){
         uint m = _idxsByName[name].length();
@@ -45,17 +59,12 @@ contract Attributable{
         return vals;
     }
     
+    function getAttributesCount(string memory name) public view returns (uint){
+        return _idxsByName[name].length();
+    }
+
     function setAttribute(string memory name, string memory value) public{
-        uint m = _idxsByName[name].length();
-        if(m > 0){
-            _firstIdxs.remove(_idxsByName[name].at(0));
-            for(uint i = 0; i < m; i++){
-                delete _attribs[_idxsByName[name].at(i)];
-            }
-        }
-
-        delete _idxsByName[name];
-
+        _removeAttributes(name);
         _addAttribute(name, value);
     }
     
@@ -64,32 +73,19 @@ contract Attributable{
     }
     
     function _addAttribute(string memory name, string memory value) internal{
-        uint n = _attribs.length;
+        uint idx = _attribs.length;
         _attribs.push(Attribute(name, value));
-        _idxsByName[name].add(n);
-        if(_idxsByName[name].length() == 1){
-          _firstIdxs.add(n);
-          emit AttributeSet(name, value, n);
-        }else{
-          emit AttributeAdded(name, value, _idxsByName[name].length(), n);
-        } 
+        _idxsByName[name].add(idx);
+        uint n = _idxsByName[name].length();
         
-    }
-    
-    function getAttributeNames() public view returns (string[] memory){
-        uint l = _firstIdxs.length();
+        if(n == 1) _firstIdxs.add(idx); 
+        emit AttributeAdded(name, value, _idxsByName[name].length());
 
-        string[] memory names = new string[](l);
-        for(uint i = 0; i < l; i++){
-            names[i] = _attribs[_firstIdxs.at(i)].name;
-        }
-
-        return names;
     }
-    
+
     function removeAttribute(string memory name, string memory value) public{
+
         uint m = _idxsByName[name].length();
-        
         if(m == 0) return;
         
         bytes32 hash = keccak256(abi.encodePacked(value));
@@ -107,25 +103,32 @@ contract Attributable{
                         _firstIdxs.add(_idxsByName[name].at(0));
                     }
                 }
+                emit AttributeRemoved(name, value);
             }
         }
         
     }
     
     function removeAttributes(string memory name) public{
-        uint m = _idxsByName[name].length();
-        
-        if(m == 0) return;
-        
-        uint idx;
-        for(uint i = 0; i < m; i++){
-            idx = _idxsByName[name].at(i);
-            delete _attribs[idx];
-            _idxsByName[name].remove(idx);
-            _firstIdxs.remove(idx);
-        }
+        _removeAttributes(name);
 
     }
+    
+    function _removeAttributes(string memory name) internal{
+        uint m = _idxsByName[name].length();
+        
+        if(m > 0){
+            uint idx;
+            for(uint i = 0; i < m; i++){
+                idx = _idxsByName[name].at(i);
+                delete _attribs[idx];
+                _firstIdxs.remove(idx);
+            }
+            
+            delete _idxsByName[name];
+            emit AttributesRemoved(name);
+        }
+   }
 
 }
 
