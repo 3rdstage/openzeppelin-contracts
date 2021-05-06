@@ -2,22 +2,18 @@
 
 pragma solidity ^0.8.0;
 
+import "./IAttributable.sol";
 import "../structs/EnumerableSet.sol";
 import "../math/Math.sol";
 
 
 // org.springframework.http.HttpHeaders API : https://docs.spring.io/spring-framework/docs/5.1.x/javadoc-api/index.html?org/springframework/http/HttpHeaders.html
 
-struct Attribute{
-    string name;
-    string value;
-}
-
 // @TODO Who can change attributes ?
 // @TODO What if a duplicate pair of name/value is to be added ?
 // @TODO For multiple values for a name(key), `Attribute.name`s are redundant. 
 
-contract Attributable{
+contract Attributable is IAttributable{
     using EnumerableSet for EnumerableSet.UintSet;
     using Math for uint256;
 
@@ -25,11 +21,7 @@ contract Attributable{
     mapping(string => EnumerableSet.UintSet) private _idxsByName; // attrib name => attrib indexes
     EnumerableSet.UintSet private _firstIdxs;  // attrib indexes on first values for each name
 
-    event AttributeAdded(string indexed name, string value, uint no);
-    event AttributeRemoved(string indexed name, string value);    
-    event AttributesRemoved(string indexed name);
-
-    function getAttributeNames() public view returns (string[] memory){
+    function getAttributeNames() public view override returns (string[] memory){
         uint l = _firstIdxs.length();
 
         string[] memory names = new string[](l);
@@ -40,7 +32,7 @@ contract Attributable{
         return names;
     }
     
-    function getAttribute(string memory name) public view returns (string memory){
+    function getAttribute(string memory name) public view override returns (string memory){
         uint m = _idxsByName[name].length();
         string memory val;
         if(m > 0) val = _attribs[_idxsByName[name].at(0)].value;
@@ -48,7 +40,7 @@ contract Attributable{
         return val;
     }
     
-    function getAttributes(string memory name) public view returns (string[] memory){
+    function getAttributes(string memory name) public view override returns (string[] memory){
         uint m = _idxsByName[name].length();
         string[] memory vals = new string[](m);
         
@@ -59,16 +51,16 @@ contract Attributable{
         return vals;
     }
     
-    function getAttributesCount(string memory name) public view returns (uint){
+    function getAttributesCount(string memory name) public view override returns (uint){
         return _idxsByName[name].length();
     }
 
-    function setAttribute(string memory name, string memory value) public{
+    function setAttribute(string memory name, string memory value) public override{
         _removeAttributes(name);
         _addAttribute(name, value);
     }
     
-    function addAttribute(string memory name, string memory value) public{
+    function addAttribute(string memory name, string memory value) public override{
         _addAttribute(name, value);
     }
     
@@ -83,7 +75,7 @@ contract Attributable{
 
     }
 
-    function removeAttribute(string memory name, string memory value) public{
+    function removeAttribute(string memory name, string memory value) public override{
 
         uint m = _idxsByName[name].length();
         if(m == 0) return;
@@ -109,7 +101,7 @@ contract Attributable{
         
     }
     
-    function removeAttributes(string memory name) public{
+    function removeAttributes(string memory name) public override{
         _removeAttributes(name);
 
     }
